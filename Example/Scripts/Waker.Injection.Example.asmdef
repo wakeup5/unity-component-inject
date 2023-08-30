@@ -1,0 +1,16 @@
+{
+    "name": "Waker.Injection.Example",
+    "rootNamespace": "",
+    "references": [
+        "GUID:e3fa6b5bf4c797040938c6b5a4e39c07"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

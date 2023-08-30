@@ -1,6 +1,6 @@
 {
-    "name": "Waker.Component-Inject",
-    "rootNamespace": "",
+    "name": "Waker.Injection",
+    "rootNamespace": "Waker.Injection",
     "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
