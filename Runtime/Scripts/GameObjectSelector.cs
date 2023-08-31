@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,6 +13,11 @@ namespace Waker.Injection
         private static Transform[] Traversal(GameObject root)
         {
             return root.GetComponentsInChildren<Transform>(true);
+        }
+
+        private static T[] Traversal<T>(GameObject root) where T : Component
+        {
+            return root.GetComponentsInChildren<T>(true);
         }
 
         private static void AddChildrenToList(Transform current, List<GameObject> children)
@@ -38,13 +44,12 @@ namespace Waker.Injection
 
         public static GameObject SelectOne(this GameObject root, string selector)
         {
-            (var name, var id, var @class) = ParseSelector(selector);
+            var query = new Query(selector);
 
             Transform[] transforms = Traversal(root);
-            for (int i = 0; i < transforms.Length; i++)
+            foreach (Transform transform in transforms)
             {
-                Transform transform = transforms[i];
-                if (IsMatch(transform.name, name, id, @class))
+                if (query.IsMatch(root.transform, transform))
                 {
                     return transform.gameObject;
                 }
@@ -65,36 +70,35 @@ namespace Waker.Injection
 
         public static List<GameObject> SelectAll(this GameObject root, string selector)
         {
-            (var name, var id, var @class) = ParseSelector(selector);
+            var query = new Query(selector);
 
-            List<GameObject> list = new();
+            List<GameObject> founds = new();
 
             Transform[] transforms = Traversal(root);
-            for (int i = 0; i < transforms.Length; i++)
+            foreach (Transform transform in transforms)
             {
-                Transform transform = transforms[i];
-                if (IsMatch(transform.name, name, id, @class))
+                if (query.IsMatch(root.transform, transform))
                 {
-                    list.Add(transform.gameObject);
+                    founds.Add(transform.gameObject);
                 }
             }
 
-            return list;
-        }
-        public static TComponent SelectOne<TComponent>(this GameObject root) where TComponent : Component
-        {
-            return root.GetComponentInChildren<TComponent>(true);
+            return founds;
         }
 
-        public static TComponent SelectOne<TComponent>(this GameObject root, string selector) where TComponent : Component
+        public static T SelectOne<T>(this GameObject root) where T : Component
         {
-            (var name, var id, var @class) = ParseSelector(selector);
+            return root.GetComponentInChildren<T>(true);
+        }
 
-            TComponent[] componentsInChildren = root.GetComponentsInChildren<TComponent>(true);
-            for (int i = 0; i < componentsInChildren.Length; i++)
+        public static T SelectOne<T>(this GameObject root, string selector) where T : Component
+        {
+            var query = new Query(selector);
+
+            T[] components = Traversal<T>(root);
+            foreach (T component in components)
             {
-                TComponent component = componentsInChildren[i];
-                if (IsMatch(component.name, name, id, @class))
+                if (query.IsMatch(root.transform, component.transform))
                 {
                     return component;
                 }
@@ -103,28 +107,27 @@ namespace Waker.Injection
             return null;
         }
 
-        public static List<TComponent> SelectAll<TComponent>(this GameObject root) where TComponent : Component
+        public static List<T> SelectAll<T>(this GameObject root) where T : Component
         {
-            return root.GetComponentsInChildren<TComponent>(true).ToList();
+            return root.GetComponentsInChildren<T>(true).ToList();
         }
 
-        public static List<TComponent> SelectAll<TComponent>(this GameObject root, string selector) where TComponent : Component
+        public static List<T> SelectAll<T>(this GameObject root, string selector) where T : Component
         {
-            (var name, var id, var @class) = ParseSelector(selector);
+            var query = new Query(selector);
 
-            var foundComponents = new List<TComponent>();
+            var founds = new List<T>();
 
-            TComponent[] componentsInChildren = root.GetComponentsInChildren<TComponent>(true);
-            for (int i = 0; i < componentsInChildren.Length; i++)
+            T[] components = Traversal<T>(root);
+            foreach (T component in components)
             {
-                TComponent component = componentsInChildren[i];
-                if (IsMatch(component.name, name, id, @class))
+                if (query.IsMatch(root.transform, component.transform))
                 {
-                    foundComponents.Add(component);
+                    founds.Add(component);
                 }
             }
 
-            return foundComponents;
+            return founds;
         }
         
         public static Component SelectOne(this GameObject root, System.Type type)
@@ -134,13 +137,12 @@ namespace Waker.Injection
 
         public static Component SelectOne(this GameObject root, System.Type type, string selector)
         {
-            (var name, var id, var @class) = ParseSelector(selector);
+            var query = new Query(selector);
 
-            Component[] componentsInChildren = root.GetComponentsInChildren(type, true);
-            for (int i = 0; i < componentsInChildren.Length; i++)
+            Component[] components = root.GetComponentsInChildren(type, true);
+            foreach (Component component in components)
             {
-                Component component = componentsInChildren[i];
-                if (IsMatch(component.name, name, id, @class))
+                if (query.IsMatch(root.transform, component.transform))
                 {
                     return component;
                 }
@@ -156,142 +158,20 @@ namespace Waker.Injection
 
         public static List<Component> SelectAll(this GameObject root, Type type, string selector)
         {
-            (var name, var id, var @class) = ParseSelector(selector);
+            var query = new Query(selector);
 
-            var foundComponents = new List<Component>();
+            var founds = new List<Component>();
 
-            Component[] componentsInChildren = root.GetComponentsInChildren(type, true);
-            for (int i = 0; i < componentsInChildren.Length; i++)
+            Component[] components = root.GetComponentsInChildren(type, true);
+            foreach (Component component in components)
             {
-                Component component = componentsInChildren[i];
-                if (IsMatch(component.name, name, id, @class))
+                if (query.IsMatch(root.transform, component.transform))
                 {
-                    foundComponents.Add(component);
+                    founds.Add(component);
                 }
             }
 
-            return foundComponents;
-        }
-
-        static bool WildcardMatch(string str, string pattern)
-        {
-            int s = 0, p = 0, match = 0, starIdx = -1;
-            while (s < str.Length)
-            {
-                // 일치하는 경우 또는 '?' 와일드카드인 경우
-                if (p < pattern.Length && (pattern[p] == '?' || str[s] == pattern[p]))
-                {
-                    s++;
-                    p++;
-                }
-                // '*' 와일드카드인 경우
-                else if (p < pattern.Length && pattern[p] == '*')
-                {
-                    starIdx = p;
-                    match = s;
-                    p++;
-                }
-                // '*' 와일드카드가 이전에 나왔던 경우
-                else if (starIdx != -1)
-                {
-                    p = starIdx + 1;
-                    match++;
-                    s = match;
-                }
-                // 일치하지 않는 경우
-                else
-                    return false;
-            }
-
-            // 남은 패턴이 모두 '*'인지 확인
-            while (p < pattern.Length && pattern[p] == '*')
-            {
-                p++;
-            }
-
-            return p == pattern.Length;
-        }
-
-        public static bool IsMatch(string str, string name, string id, string @class)
-        {
-            (var n, var i, var c) = ParseSelector(str);
-
-            if (!string.IsNullOrEmpty(@class) && @class != c)
-            {
-                return false;
-            }
-            
-            if (!string.IsNullOrEmpty(id) && id != i)
-            {
-                return false;
-            }
-            
-            if (!string.IsNullOrEmpty(name) && !WildcardMatch(n, name))
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        public static (string name, string id, string @class) ParseSelector(string fullName)
-        {
-            string name;
-            string id = string.Empty;
-            string @class = string.Empty;
-
-            int idIndex = fullName.IndexOf('#');
-            if (idIndex >= 0)
-            {
-                int idSpaceIndex = fullName.IndexOf(' ', idIndex);
-                if (idSpaceIndex >= 0)
-                {
-                    id = fullName[idIndex..idSpaceIndex];
-                }
-                else
-                {
-                    id = fullName[idIndex..];
-                }
-            }
-
-            int classIndex = fullName.IndexOf('.');
-            if (classIndex >= 0)
-            {
-                int classSpaceIndex = fullName.IndexOf(' ', classIndex);
-                if (classSpaceIndex >= 0)
-                {
-                    @class = fullName[classIndex..classSpaceIndex];
-                }
-                else
-                {
-                    @class = fullName[classIndex..];
-                }
-            }
-
-            if (idIndex >= 0 || classIndex >= 0)
-            {
-                if (classIndex < 0)
-                {
-                    name = fullName[..idIndex];
-                }
-                else if (idIndex < 0)
-                {
-                    name = fullName[..classIndex];
-                }
-                else
-                {
-                    name = fullName[..Math.Min(idIndex, classIndex)];
-                }
-            }
-            else
-            {
-                name = fullName;
-            }
-
-            name = name.Trim();
-
-            return (name, id, @class);
+            return founds;
         }
     }
-
 }
