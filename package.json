@@ -1,6 +1,6 @@
 {
   "name": "me.waker.component-injection",
-  "version": "0.2.1",
+  "version": "0.3.2",
   "description": "A library that automatically assigns objects and components in self or child using the Inject attribute to SerializeField.",
   "displayName": "Waker Unity Injection",
   "unity": "2021.3",
