@@ -45,6 +45,12 @@ namespace Waker.Injection
 
         private static void InjectTo(Component component, FieldInfo fieldInfo, InjectAttribute inject)
         {
+            // 값이 있을 경우 패스
+            if (fieldInfo.GetValue(component) != null)
+            {
+                return;
+            }
+
             var fieldType = fieldInfo.FieldType;
             var collectionType = GetCollectionType(fieldType);
 
